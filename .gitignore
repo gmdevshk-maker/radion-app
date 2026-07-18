@@ -1,0 +1,29 @@
+# --- 서명 비밀 (절대 커밋 금지) ---
+keystore.properties
+*.jks
+*.keystore
+
+# --- 개인 사용 스트림 URL (공유 금지) ---
+# 실제 채널 목록은 커밋하지 않고 channels.example.json만 공개
+app/src/main/assets/channels.json
+
+# --- 로컬 설정 ---
+local.properties
+
+# --- 빌드 산출물 ---
+.gradle/
+build/
+app/build/
+app/release/
+.kotlin/
+*.apk
+*.aab
+
+# --- 저장소에서 제외 (로컬 전용) ---
+keystore.properties.example
+CLAUDE.md
+
+# --- IDE ---
+.idea/
+*.iml
+.DS_Store

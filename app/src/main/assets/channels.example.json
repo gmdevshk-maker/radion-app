@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "channels": [
+    {
+      "id": "kbs-classic",
+      "group": "KBS",
+      "name": "KBS 클래식FM",
+      "freq": 93.1,
+      "desc": "클래식 음악 전문",
+      "type": "audio",
+      "resolver": "kbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null
+    },
+    {
+      "id": "kbs-cool",
+      "group": "KBS",
+      "name": "KBS 쿨FM",
+      "freq": 89.1,
+      "desc": "음악 · 예능 · 보이는 라디오",
+      "type": "video",
+      "resolver": "kbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "kbs-happy",
+      "group": "KBS",
+      "name": "KBS 해피FM",
+      "freq": 106.1,
+      "desc": "제2라디오 · 가요 · 보이는 라디오",
+      "type": "video",
+      "resolver": "kbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "kbs-1radio",
+      "group": "KBS",
+      "name": "KBS 1라디오",
+      "freq": 97.3,
+      "desc": "뉴스 · 시사 · 보이는 라디오",
+      "type": "video",
+      "resolver": "kbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "kbs-3radio",
+      "group": "KBS",
+      "name": "KBS 3라디오",
+      "freq": 104.9,
+      "desc": "사랑의소리 · 장애인 · 복지",
+      "type": "audio",
+      "resolver": "kbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null
+    },
+    {
+      "id": "mbc-fm4u",
+      "group": "MBC",
+      "name": "MBC FM4U",
+      "freq": 91.9,
+      "desc": "음악 · 보이는 라디오",
+      "type": "video",
+      "resolver": "mbc_bora",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "mbc-sfm",
+      "group": "MBC",
+      "name": "MBC 표준FM",
+      "freq": 95.9,
+      "desc": "시사 · 교양 · 보이는 라디오",
+      "type": "video",
+      "resolver": "mbc_bora",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "sbs-power",
+      "group": "SBS",
+      "name": "SBS 파워FM",
+      "freq": 107.7,
+      "desc": "음악 · 연예 · 보이는 라디오",
+      "type": "video",
+      "resolver": "sbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "sbs-love",
+      "group": "SBS",
+      "name": "SBS 러브FM",
+      "freq": 103.5,
+      "desc": "가요 · 정보 · 보이는 라디오",
+      "type": "video",
+      "resolver": "sbs",
+      "api": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>",
+      "streamUrl": null,
+      "audioApi": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "cbs-music",
+      "group": "CBS",
+      "name": "CBS 음악FM",
+      "freq": 93.9,
+      "desc": "팝 · 가요",
+      "type": "audio",
+      "resolver": "direct",
+      "api": null,
+      "streamUrl": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "cbs-standard",
+      "group": "CBS",
+      "name": "CBS 표준FM",
+      "freq": 98.1,
+      "desc": "시사 · 교양",
+      "type": "audio",
+      "resolver": "direct",
+      "api": null,
+      "streamUrl": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "ebs-fm",
+      "group": "기타",
+      "name": "EBS FM",
+      "freq": 104.5,
+      "desc": "교육 · 어학",
+      "type": "audio",
+      "resolver": "direct",
+      "api": null,
+      "streamUrl": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "gugak",
+      "group": "기타",
+      "name": "국악방송",
+      "freq": 99.1,
+      "desc": "국악 · 전통음악",
+      "type": "audio",
+      "resolver": "direct",
+      "api": null,
+      "streamUrl": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "tbs-fm",
+      "group": "기타",
+      "name": "TBS FM",
+      "freq": 95.1,
+      "desc": "교통정보 · 시사",
+      "type": "audio",
+      "resolver": "direct",
+      "api": null,
+      "streamUrl": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    },
+    {
+      "id": "ytn-radio",
+      "group": "기타",
+      "name": "YTN 라디오",
+      "freq": 94.5,
+      "desc": "뉴스 · 시사",
+      "type": "audio",
+      "resolver": "direct",
+      "api": null,
+      "streamUrl": "<REDACTED — 개인 사용 URL. 실제 값은 저장소에 포함하지 않음>"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#131417</color>
+    <color name="amber">#FFB454</color>
+    <!-- 런처 아이콘 배지 바탕 (원본 아이콘의 흰색) -->
+    <color name="ic_launcher_background">#FDFDFD</color>
+</resources>
