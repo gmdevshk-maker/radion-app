@@ -30,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.app.radion.data.ChannelType
@@ -249,14 +248,14 @@ private fun formatEndTime(t: LocalTime): String {
     return "$ampm ${String.format(Locale.US, "%02d:%02d", hour12, t.minute)}"
 }
 
-/** 현재 시각 디지털 시계. 콜론은 1초 주기로 점멸한다. */
+/** 현재 시각 디지털 시계. 초는 표시하지 않으므로 분이 바뀔 때만 갱신한다. */
 @Composable
 private fun HeaderClock(modifier: Modifier = Modifier) {
     var now by remember { mutableStateOf(LocalTime.now()) }
     LaunchedEffect(Unit) {
         while (true) {
-            // 초가 바뀌는 시점에 맞춰 갱신
-            delay(1000 - System.currentTimeMillis() % 1000)
+            // 다음 분으로 넘어가는 시점에 맞춰 갱신
+            delay(60_000 - System.currentTimeMillis() % 60_000)
             now = LocalTime.now()
         }
     }
@@ -270,12 +269,9 @@ private fun HeaderClock(modifier: Modifier = Modifier) {
             style = RadionType.Overline,
             modifier = Modifier.padding(end = 5.dp),
         )
-        Text(text = String.format(Locale.US, "%02d", hour12), style = numberStyle)
         Text(
-            text = ":",
+            text = String.format(Locale.US, "%02d:%02d", hour12, now.minute),
             style = numberStyle,
-            modifier = Modifier.alpha(if (now.second % 2 == 0) 1f else 0f),
         )
-        Text(text = String.format(Locale.US, "%02d", now.minute), style = numberStyle)
     }
 }

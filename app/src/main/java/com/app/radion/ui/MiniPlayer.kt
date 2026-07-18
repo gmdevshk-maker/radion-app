@@ -1,10 +1,5 @@
 package com.app.radion.ui
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,10 +16,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
@@ -133,22 +128,14 @@ fun MiniPlayer(
     }
 }
 
-/** LIVE 점멸 점. */
+/** 재생 상태 점. 재생 중이면 앰버, 아니면 회색. 점멸 애니메이션 없음(상시 리드로우 방지). */
 @Composable
 fun LiveDot(active: Boolean, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "liveDot")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.35f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "liveDotAlpha",
-    )
     Box(
         modifier = modifier
             .size(6.dp)
-            .clip(CircleShape)
-            .background(
-                if (active) RadionColors.Needle.copy(alpha = alpha) else RadionColors.Muted,
-            ),
+            .drawBehind {
+                drawCircle(if (active) RadionColors.Needle else RadionColors.Muted)
+            },
     )
 }

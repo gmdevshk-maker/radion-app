@@ -34,7 +34,7 @@ import com.app.radion.data.formatFreq
 import com.app.radion.ui.theme.RadionColors
 import com.app.radion.ui.theme.RadionType
 
-/** 보이는 라디오 영상 스테이지. LIVE 배지 + 전체화면 버튼 포함. */
+/** 보이는 라디오 영상 스테이지. 전체화면 버튼 포함. */
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoStage(
@@ -78,24 +78,6 @@ fun VideoStage(
                 freq = freq,
                 audioOnly = videoUnavailable && isPlaying,
                 modifier = Modifier.fillMaxSize(),
-            )
-        }
-
-        // LIVE 배지 (좌상단)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(10.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.Black.copy(alpha = 0.55f))
-                .padding(horizontal = 9.dp, vertical = 4.dp),
-        ) {
-            LiveDot(active = isPlaying)
-            Text(
-                text = "LIVE",
-                style = RadionType.LiveBadge,
-                modifier = Modifier.padding(start = 6.dp),
             )
         }
 
