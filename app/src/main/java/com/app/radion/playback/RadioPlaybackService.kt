@@ -1,4 +1,4 @@
-package com.radion.app.playback
+package com.app.radion.playback
 
 import android.app.PendingIntent
 import android.content.Intent
@@ -20,7 +20,8 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import com.radion.app.MainActivity
+import com.app.radion.MainActivity
+import com.app.radion.data.BROWSER_USER_AGENT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,7 +43,7 @@ class RadioPlaybackService : MediaSessionService() {
 
         // 일부 방송사 스트림은 브라우저 User-Agent를 요구함
         val httpFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent(USER_AGENT)
+            .setUserAgent(BROWSER_USER_AGENT)
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(15_000)
@@ -124,10 +125,8 @@ class RadioPlaybackService : MediaSessionService() {
     }
 
     companion object {
-        const val ACTION_SLEEP_TIMER = "com.radion.app.SLEEP_TIMER"
+        const val ACTION_SLEEP_TIMER = "com.app.radion.SLEEP_TIMER"
         const val EXTRA_MINUTES = "minutes"
         private const val RETRY_COUNT = 6
-        private const val USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
     }
 }

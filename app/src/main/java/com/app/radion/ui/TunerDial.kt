@@ -1,4 +1,4 @@
-package com.radion.app.ui
+package com.app.radion.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -24,16 +24,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.radion.app.data.Channel
-import com.radion.app.ui.theme.PlexMono
-import com.radion.app.ui.theme.Pretendard
-import com.radion.app.ui.theme.RadionColors
+import com.app.radion.data.Channel
+import com.app.radion.data.formatFreq
+import com.app.radion.ui.theme.RadionColors
+import com.app.radion.ui.theme.RadionType
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -79,11 +76,7 @@ fun TunerStage(
 
     val stationTicks = remember(channels) { channels.map { (it.freq * 10).roundToInt() }.toSet() }
     val textMeasurer = rememberTextMeasurer()
-    val labelStyle = TextStyle(
-        fontFamily = PlexMono,
-        fontSize = 11.sp,
-        color = RadionColors.Muted,
-    )
+    val labelStyle = RadionType.MonoXs
 
     val dragModifier = Modifier.pointerInput(channels, currentChannel?.id) {
         detectHorizontalDragGestures(
@@ -218,12 +211,8 @@ fun TunerStage(
         // 주파수 표시
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = String.format("%.1f", animFreq),
-                style = TextStyle(
-                    fontFamily = PlexMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 34.sp,
-                    color = RadionColors.Amber,
+                text = formatFreq(animFreq.toDouble()),
+                style = RadionType.FreqDisplay.copy(
                     shadow = Shadow(
                         color = RadionColors.Amber.copy(alpha = 0.35f),
                         blurRadius = 18f,
@@ -232,7 +221,7 @@ fun TunerStage(
             )
             Text(
                 text = "MHz",
-                style = TextStyle(fontFamily = PlexMono, fontSize = 13.sp, color = RadionColors.Muted),
+                style = RadionType.MonoMd,
                 modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
             )
         }
@@ -244,7 +233,7 @@ fun TunerStage(
         }
         Text(
             text = pointedName,
-            style = TextStyle(fontFamily = Pretendard, fontSize = 12.5.sp, color = RadionColors.Muted),
+            style = RadionType.BodyMuted,
             modifier = Modifier.padding(top = 3.dp),
         )
     }

@@ -2,10 +2,10 @@
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
 
--keepclassmembers @kotlinx.serialization.Serializable class com.radion.app.data.** {
+-keepclassmembers @kotlinx.serialization.Serializable class com.app.radion.data.** {
     *** Companion;
     *** serializer(...);
 }
--keepclasseswithmembers class com.radion.app.data.** {
+-keepclasseswithmembers class com.app.radion.data.** {
     kotlinx.serialization.KSerializer serializer(...);
 }

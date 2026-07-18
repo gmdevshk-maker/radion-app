@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGlow" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#3a2a12"/>
+      <stop offset="100%" stop-color="#131417"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 배경 (스퀴클) -->
+  <rect x="0" y="0" width="512" height="512" rx="116" fill="url(#bgGlow)"/>
+
+  <!-- 안테나 -->
+  <line x1="256" y1="154" x2="330" y2="74" stroke="#ffb454" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="330" cy="74" r="14" fill="#e8503a"/>
+
+  <!-- 라디오 본체 -->
+  <rect x="128" y="154" width="256" height="190" rx="36" fill="none" stroke="#ffb454" stroke-width="11"/>
+
+  <!-- 다이얼 (스피커 자리에 튜너 다이얼) -->
+  <circle cx="200" cy="248" r="33" fill="none" stroke="#ffb454" stroke-width="11"/>
+  <circle cx="200" cy="248" r="11" fill="#ffb454"/>
+
+  <!-- 스피커 그릴 라인 -->
+  <rect x="272" y="222" width="66" height="15" rx="7" fill="#ffb454" opacity="0.65"/>
+  <rect x="272" y="256" width="66" height="15" rx="7" fill="#ffb454" opacity="0.65"/>
+
+  <!-- 받침대 -->
+  <rect x="164" y="344" width="184" height="50" rx="14" fill="none" stroke="#565a64" stroke-width="8"/>
+</svg>

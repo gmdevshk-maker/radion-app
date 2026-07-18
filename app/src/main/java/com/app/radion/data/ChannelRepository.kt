@@ -1,4 +1,4 @@
-package com.radion.app.data
+package com.app.radion.data
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
@@ -7,8 +7,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.net.HttpURLConnection
-import java.net.URL
 import java.time.LocalDateTime
 
 /** assets/channels.json 로드 + 재생 직전 스트림 URL 해석(토큰 발급 API 호출). */
@@ -34,9 +32,9 @@ class ChannelRepository(private val context: Context) {
                 requireNotNull(channel.api),
                 wantedMediaType = if (channel.type == ChannelType.VIDEO) "bora" else "radio",
             )
-            ResolverType.MBC -> httpGet(requireNotNull(channel.api)).trim()
+            ResolverType.MBC -> httpGetText(requireNotNull(channel.api)).trim()
             ResolverType.MBC_BORA -> resolveMbcBora(channel)
-            ResolverType.SBS -> httpGet(requireNotNull(channel.api)).trim()
+            ResolverType.SBS -> httpGetText(requireNotNull(channel.api)).trim()
         }
     }
 
@@ -45,12 +43,12 @@ class ChannelRepository(private val context: Context) {
         val api = requireNotNull(channel.audioApi) { "audioApi 누락: ${channel.id}" }
         when (channel.resolver) {
             ResolverType.KBS -> resolveKbs(api, wantedMediaType = "radio")
-            else -> httpGet(api).trim()
+            else -> httpGetText(api).trim()
         }
     }
 
     private fun resolveKbs(api: String, wantedMediaType: String): String {
-        val body = httpGet(api, referer = "https://onair.kbs.co.kr/")
+        val body = httpGetText(api, referer = KBS_REFERER)
         val items = json.parseToJsonElement(body).jsonObject["channel_item"]?.jsonArray
             ?: error("KBS 응답에 channel_item 없음: $api")
         val item = items.map { it.jsonObject }
@@ -79,7 +77,7 @@ class ChannelRepository(private val context: Context) {
         val today = now.toLocalDate().toString()
         val nowHhmm = "%02d%02d".format(now.hour, now.minute)
 
-        val entry = json.parseToJsonElement(httpGet(MBC_BORA_SCHEDULE_LIST, referer = MBC_MINI_REFERER))
+        val entry = json.parseToJsonElement(httpGetText(MBC_BORA_SCHEDULE_LIST, referer = MBC_MINI_REFERER))
             .jsonArray
             .map { it.jsonObject }
             .firstOrNull {
@@ -95,24 +93,10 @@ class ChannelRepository(private val context: Context) {
         // "19:00"으로 바꿔 보내면 방송 중이어도 BoraURL이 빈 문자열로 온다.
         val startTime = entry["StartTime"]?.jsonPrimitive?.content.orEmpty()
 
-        val body = httpGet("$api&bid=$bid&startTime=$startTime", referer = MBC_MINI_REFERER)
+        val body = httpGetText("$api&bid=$bid&startTime=$startTime", referer = MBC_MINI_REFERER)
         val url = BORA_URL_REGEX.find(body)?.groupValues?.get(1)
         if (url.isNullOrBlank()) error("보이는 라디오 미송출: ${channel.id}")
         return url
-    }
-
-    private fun httpGet(url: String, referer: String? = null): String {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        return try {
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 10_000
-            conn.setRequestProperty("User-Agent", USER_AGENT)
-            referer?.let { conn.setRequestProperty("Referer", it) }
-            check(conn.responseCode in 200..299) { "HTTP ${conn.responseCode}: $url" }
-            conn.inputStream.bufferedReader().use { it.readText() }
-        } finally {
-            conn.disconnect()
-        }
     }
 
     companion object {
@@ -121,9 +105,8 @@ class ChannelRepository(private val context: Context) {
         private val MBC_CHANNEL_PARAM = Regex("channel=([a-z0-9]+)")
         private const val MBC_BORA_SCHEDULE_LIST = "https://miniapi.imbc.com/bora/scheduleList"
         private const val MBC_MINI_REFERER = "https://miniwebapp.imbc.com/"
+        private const val KBS_REFERER = "https://onair.kbs.co.kr/"
         /** 편성표의 Channel 값 (표준FM은 "표준FM"이 아니라 "STFM") */
         private val MBC_CHANNEL_NAMES = mapOf("mfm" to "FM4U", "sfm" to "STFM")
-        private const val USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
     }
 }

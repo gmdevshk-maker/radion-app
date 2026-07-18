@@ -1,4 +1,4 @@
-package com.radion.app.ui
+package com.app.radion.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -32,17 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
-import com.radion.app.data.ChannelType
-import com.radion.app.ui.theme.PlexMono
-import com.radion.app.ui.theme.Pretendard
-import com.radion.app.ui.theme.RadionColors
+import com.app.radion.data.ChannelType
+import com.app.radion.ui.theme.RadionColors
+import com.app.radion.ui.theme.RadionType
 import kotlinx.coroutines.delay
 import java.time.LocalTime
+import java.util.Locale
 
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
@@ -52,9 +48,11 @@ fun MainScreen(viewModel: MainViewModel) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val isBuffering by viewModel.isBuffering.collectAsState()
     val sleepMinutes by viewModel.sleepMinutes.collectAsState()
+    val sleepEndsAt by viewModel.sleepEndsAt.collectAsState()
     val isFullscreen by viewModel.isFullscreen.collectAsState()
     val videoUnavailable by viewModel.videoUnavailable.collectAsState()
     val controller by viewModel.controller.collectAsState()
+    val updateState by viewModel.updateState.collectAsState()
 
     var toastMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
@@ -87,7 +85,9 @@ fun MainScreen(viewModel: MainViewModel) {
         ) {
             if (!isFullscreen) {
                 Header(
+                    version = viewModel.appVersion,
                     sleepMinutes = sleepMinutes,
+                    sleepEndsAt = sleepEndsAt,
                     onSleepClick = viewModel::cycleSleepTimer,
                 )
             }
@@ -149,10 +149,7 @@ fun MainScreen(viewModel: MainViewModel) {
                 isPlaying = isPlaying,
                 isBuffering = isBuffering,
                 onTogglePlay = viewModel::togglePlay,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(start = 12.dp, end = 12.dp, bottom = 14.dp),
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
 
@@ -168,18 +165,24 @@ fun MainScreen(viewModel: MainViewModel) {
                     .border(1.dp, RadionColors.Line, RoundedCornerShape(999.dp))
                     .padding(horizontal = 16.dp, vertical = 9.dp),
             ) {
-                Text(
-                    text = message,
-                    style = TextStyle(fontFamily = Pretendard, fontSize = 12.5.sp, color = RadionColors.Text),
-                )
+                Text(text = message, style = RadionType.Body)
             }
         }
+
+        UpdateDialog(
+            state = updateState,
+            currentVersion = viewModel.appVersion,
+            onUpdate = viewModel::startUpdate,
+            onDismiss = viewModel::dismissUpdate,
+        )
     }
 }
 
 @Composable
 private fun Header(
+    version: String,
     sleepMinutes: Int?,
+    sleepEndsAt: LocalTime?,
     onSleepClick: () -> Unit,
 ) {
     Row(
@@ -190,26 +193,16 @@ private fun Header(
             .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = "라디온",
-                style = TextStyle(
-                    fontFamily = Pretendard,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
-                    letterSpacing = (-0.02).em,
-                    color = RadionColors.Text,
-                ),
+            RadionLogoIcon(
+                modifier = Modifier
+                    .padding(end = 7.dp, bottom = 1.dp)
+                    .size(22.dp),
             )
+            Text(text = "라디온", style = RadionType.AppTitle)
             Text(
-                text = "RADION",
-                style = TextStyle(
-                    fontFamily = PlexMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    letterSpacing = 0.08.em,
-                    color = RadionColors.Amber,
-                ),
-                modifier = Modifier.padding(start = 6.dp, bottom = 1.dp),
+                text = "(v$version)",
+                style = RadionType.Overline,
+                modifier = Modifier.padding(start = 3.dp, bottom = 2.dp),
             )
         }
 
@@ -239,16 +232,21 @@ private fun Header(
                     modifier = Modifier.size(13.dp),
                 )
                 Text(
-                    text = sleepMinutes?.let { "${it}분 후 종료" } ?: "취침 타이머",
-                    style = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 12.sp,
+                    text = sleepEndsAt?.let { "${formatEndTime(it)}에 종료" } ?: "취침 타이머",
+                    style = RadionType.Caption.copy(
                         color = if (active) RadionColors.Amber else RadionColors.Muted,
                     ),
                 )
             }
         }
     }
+}
+
+/** 취침 종료 시각을 "PM 01:40" 형태로 포맷. */
+private fun formatEndTime(t: LocalTime): String {
+    val ampm = if (t.hour < 12) "AM" else "PM"
+    val hour12 = if (t.hour % 12 == 0) 12 else t.hour % 12
+    return "$ampm ${String.format(Locale.US, "%02d:%02d", hour12, t.minute)}"
 }
 
 /** 현재 시각 디지털 시계. 콜론은 1초 주기로 점멸한다. */
@@ -264,31 +262,20 @@ private fun HeaderClock(modifier: Modifier = Modifier) {
     }
 
     val hour12 = if (now.hour % 12 == 0) 12 else now.hour % 12
-    val numberStyle = TextStyle(
-        fontFamily = PlexMono,
-        fontWeight = FontWeight.Medium,
-        fontSize = 13.5.sp,
-        color = RadionColors.Text,
-    )
+    val numberStyle = RadionType.ClockTime
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Text(
             text = if (now.hour < 12) "AM" else "PM",
-            style = TextStyle(
-                fontFamily = PlexMono,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 10.5.sp,
-                letterSpacing = 0.06.em,
-                color = RadionColors.Muted,
-            ),
+            style = RadionType.Overline,
             modifier = Modifier.padding(end = 5.dp),
         )
-        Text(text = String.format("%02d", hour12), style = numberStyle)
+        Text(text = String.format(Locale.US, "%02d", hour12), style = numberStyle)
         Text(
             text = ":",
             style = numberStyle,
             modifier = Modifier.alpha(if (now.second % 2 == 0) 1f else 0f),
         )
-        Text(text = String.format("%02d", now.minute), style = numberStyle)
+        Text(text = String.format(Locale.US, "%02d", now.minute), style = numberStyle)
     }
 }

@@ -1,8 +1,9 @@
-package com.radion.app.ui
+package com.app.radion.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -11,6 +12,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.app.radion.ui.theme.RadionColors
 
 /** 목업 SVG 아이콘들을 Canvas로 재현 (24x24 뷰포트 기준). */
 
@@ -104,6 +106,72 @@ fun CameraIcon(color: Color, modifier: Modifier = Modifier) {
             close()
         }
         drawPath(lens, color, style = stroke)
+    }
+}
+
+/**
+ * 앱 아이콘의 라디오 그래픽 (design/radion-icon.svg의 전경과 동일).
+ * SVG(512 뷰포트) 좌표를 그대로 쓰되, 그래픽 bbox(x[122.5,389.5] y[60,398])를 캔버스에 맞춰 스케일한다.
+ */
+@Composable
+fun RadionLogoIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val s = size.minDimension / 338f          // bbox 높이(338) 기준
+        val offX = size.width / 2f - 256f * s     // bbox 가로 중심 256
+        val offY = size.height / 2f - 229f * s    // bbox 세로 중심 229
+        fun p(x: Float, y: Float) = Offset(offX + x * s, offY + y * s)
+
+        // 안테나 + 팁
+        drawLine(
+            RadionColors.Amber,
+            start = p(256f, 154f),
+            end = p(330f, 74f),
+            strokeWidth = 11f * s,
+            cap = StrokeCap.Round,
+        )
+        drawCircle(RadionColors.Needle, radius = 14f * s, center = p(330f, 74f))
+
+        // 본체
+        drawRoundRect(
+            RadionColors.Amber,
+            topLeft = p(128f, 154f),
+            size = Size(256f * s, 190f * s),
+            cornerRadius = CornerRadius(36f * s),
+            style = Stroke(width = 11f * s),
+        )
+
+        // 다이얼
+        drawCircle(
+            RadionColors.Amber,
+            radius = 33f * s,
+            center = p(200f, 248f),
+            style = Stroke(width = 11f * s),
+        )
+        drawCircle(RadionColors.Amber, radius = 11f * s, center = p(200f, 248f))
+
+        // 스피커 그릴
+        val grill = RadionColors.Amber.copy(alpha = 0.65f)
+        drawRoundRect(
+            grill,
+            topLeft = p(272f, 222f),
+            size = Size(66f * s, 15f * s),
+            cornerRadius = CornerRadius(7f * s),
+        )
+        drawRoundRect(
+            grill,
+            topLeft = p(272f, 256f),
+            size = Size(66f * s, 15f * s),
+            cornerRadius = CornerRadius(7f * s),
+        )
+
+        // 받침대
+        drawRoundRect(
+            RadionColors.TickMajor,
+            topLeft = p(164f, 344f),
+            size = Size(184f * s, 50f * s),
+            cornerRadius = CornerRadius(14f * s),
+            style = Stroke(width = 8f * s),
+        )
     }
 }
 

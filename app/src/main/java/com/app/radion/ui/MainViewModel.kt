@@ -1,4 +1,4 @@
-package com.radion.app.ui
+package com.app.radion.ui
 
 import android.app.Application
 import android.content.ComponentName
@@ -15,11 +15,16 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
-import com.radion.app.data.Channel
-import com.radion.app.data.ChannelRepository
-import com.radion.app.data.ChannelType
-import com.radion.app.data.PreferencesRepository
-import com.radion.app.playback.RadioPlaybackService
+import com.app.radion.data.ApkInstaller
+import com.app.radion.data.Channel
+import com.app.radion.data.ChannelRepository
+import com.app.radion.data.ChannelType
+import com.app.radion.data.PreferencesRepository
+import com.app.radion.data.UpdateInfo
+import com.app.radion.data.UpdateRepository
+import com.app.radion.data.freqText
+import com.app.radion.playback.RadioPlaybackService
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +36,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.LocalTime
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val channelRepo = ChannelRepository(application)
     private val prefsRepo = PreferencesRepository(application)
+    private val updateRepo = UpdateRepository(application)
+
+    /** 현재 설치된 앱 버전명 (업데이트 다이얼로그 표시용). */
+    val appVersion: String = updateRepo.currentVersionName()
 
     private val _controller = MutableStateFlow<MediaController?>(null)
     val controller: StateFlow<MediaController?> = _controller
@@ -58,6 +68,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _sleepMinutes = MutableStateFlow<Int?>(null)
     val sleepMinutes: StateFlow<Int?> = _sleepMinutes
 
+    /** 취침 타이머 종료 예정 시각. 설정 시점에 고정한다(매초 재계산하면 시각이 밀림). */
+    private val _sleepEndsAt = MutableStateFlow<LocalTime?>(null)
+    val sleepEndsAt: StateFlow<LocalTime?> = _sleepEndsAt
+
     private val _isFullscreen = MutableStateFlow(false)
     val isFullscreen: StateFlow<Boolean> = _isFullscreen
 
@@ -68,11 +82,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _toast = MutableSharedFlow<String>()
     val toast: SharedFlow<String> = _toast
 
+    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateState: StateFlow<UpdateState> = _updateState
+
     /** 화면이 보이는 상태인지 (보이는 라디오 영상 트랙 on/off 판단용) */
     private var inForeground = true
 
     private var retryCount = 0
-    private var sleepResetJob: kotlinx.coroutines.Job? = null
+    private var sleepResetJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -81,6 +98,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (_currentChannel.value == null) {
                 _currentChannel.value = _channels.value.firstOrNull { it.id == lastId }
                     ?: _channels.value.firstOrNull()
+            }
+        }
+
+        // 앱 시작 시 업데이트 확인 (실패해도 조용히 무시)
+        viewModelScope.launch {
+            val info = updateRepo.checkForUpdate() ?: return@launch
+            if (_updateState.value is UpdateState.Idle) {
+                _updateState.value = UpdateState.Available(info)
             }
         }
 
@@ -143,15 +168,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefsRepo.toggleFavorite(channelId) }
     }
 
-    /** 취침 타이머 칩: 15 → 30 → 60 → 해제 순환 */
+    /** 취침 타이머 칩: 30 → 60 → 90 → 120 → 해제 순환 (30분 간격, 최대 120분) */
     fun cycleSleepTimer() {
         val next = when (_sleepMinutes.value) {
-            null -> 15
-            15 -> 30
+            null -> 30
             30 -> 60
+            60 -> 90
+            90 -> 120
             else -> null
         }
         _sleepMinutes.value = next
+        _sleepEndsAt.value = next?.let { LocalTime.now().plusMinutes(it.toLong()) }
         sendSleepCommand(next ?: 0)
 
         sleepResetJob?.cancel()
@@ -159,6 +186,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             sleepResetJob = viewModelScope.launch {
                 delay(next * 60_000L)
                 _sleepMinutes.value = null
+                _sleepEndsAt.value = null
             }
             showToast("${next}분 후 재생이 종료됩니다")
         } else {
@@ -217,7 +245,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(channel.name)
-                        .setArtist(String.format("%.1f MHz", channel.freq))
+                        .setArtist("${channel.freqText} MHz")
                         .build(),
                 )
                 .build()
@@ -277,6 +305,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** 업데이트 다이얼로그의 '업데이트' 버튼: APK 다운로드 후 시스템 설치 화면을 띄운다. */
+    fun startUpdate() {
+        val info = (_updateState.value as? UpdateState.Available)?.info ?: return
+        val context = getApplication<Application>()
+
+        // '알 수 없는 앱 설치' 권한이 없으면 설정 화면으로 보내고 중단(허용 후 다시 시도)
+        if (!ApkInstaller.canInstall(context)) {
+            showToast("설정에서 '알 수 없는 앱 설치'를 허용한 뒤 다시 눌러주세요")
+            ApkInstaller.openInstallPermissionSettings(context)
+            return
+        }
+
+        viewModelScope.launch {
+            _updateState.value = UpdateState.Downloading(0f)
+            try {
+                val apk = updateRepo.downloadApk(info) { progress ->
+                    _updateState.value = UpdateState.Downloading(progress.coerceAtLeast(0f))
+                }
+                ApkInstaller.install(context, apk)
+                _updateState.value = UpdateState.Idle
+            } catch (e: Exception) {
+                showToast("업데이트 다운로드에 실패했습니다")
+                _updateState.value = UpdateState.Available(info)
+            }
+        }
+    }
+
+    /** '나중에' 버튼: 이번 실행 동안 다이얼로그를 닫는다. */
+    fun dismissUpdate() {
+        if (_updateState.value is UpdateState.Available) {
+            _updateState.value = UpdateState.Idle
+        }
+    }
+
     private fun showToast(message: String) {
         viewModelScope.launch { _toast.emit(message) }
     }
@@ -291,4 +353,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private const val RETRY_DELAY_MS = 2_000L
         private const val CONTROLLER_WAIT_MS = 10_000L
     }
+}
+
+/** 인앱 업데이트 상태. */
+sealed interface UpdateState {
+    data object Idle : UpdateState
+    data class Available(val info: UpdateInfo) : UpdateState
+    data class Downloading(val progress: Float) : UpdateState
 }

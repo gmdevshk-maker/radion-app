@@ -1,4 +1,4 @@
-package com.radion.app.ui
+package com.app.radion.ui
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -33,18 +33,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
-import com.radion.app.data.Channel
-import com.radion.app.data.ChannelType
-import com.radion.app.ui.theme.PlexMono
-import com.radion.app.ui.theme.Pretendard
-import com.radion.app.ui.theme.RadionColors
+import com.app.radion.data.Channel
+import com.app.radion.data.ChannelType
+import com.app.radion.data.freqText
+import com.app.radion.ui.theme.RadionColors
+import com.app.radion.ui.theme.RadionType
 
 private const val OTHER_GROUP = "기타"
 
@@ -131,7 +128,7 @@ fun ChannelList(
 @Composable
 private fun GroupLabel(
     name: String,
-    topPadding: androidx.compose.ui.unit.Dp,
+    topPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -140,15 +137,7 @@ private fun GroupLabel(
             .fillMaxWidth()
             .padding(start = 6.dp, end = 6.dp, top = topPadding, bottom = 8.dp),
     ) {
-        Text(
-            text = name,
-            style = TextStyle(
-                fontFamily = PlexMono,
-                fontSize = 10.5.sp,
-                color = RadionColors.Muted,
-                letterSpacing = 0.18.em,
-            ),
-        )
+        Text(text = name, style = RadionType.GroupLabel)
         HorizontalDivider(
             modifier = Modifier
                 .weight(1f)
@@ -190,11 +179,8 @@ private fun ChannelRow(
         modifier = rowModifier,
     ) {
         Text(
-            text = String.format("%.1f", channel.freq),
-            style = TextStyle(
-                fontFamily = PlexMono,
-                fontWeight = FontWeight.Medium,
-                fontSize = 13.sp,
+            text = channel.freqText,
+            style = RadionType.FreqRow.copy(
                 color = if (isCurrent) RadionColors.Amber else RadionColors.Muted,
                 textAlign = TextAlign.Right,
             ),
@@ -204,24 +190,14 @@ private fun ChannelRow(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = channel.name,
-                    style = TextStyle(
-                        fontFamily = Pretendard,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                        color = RadionColors.Text,
-                    ),
+                    style = RadionType.ChannelName,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (channel.type == ChannelType.VIDEO) {
                     Text(
                         text = "보이는",
-                        style = TextStyle(
-                            fontFamily = Pretendard,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 9.sp,
-                            color = RadionColors.Amber,
-                        ),
+                        style = RadionType.Badge,
                         modifier = Modifier
                             .border(1.dp, RadionColors.AmberDim, RoundedCornerShape(4.dp))
                             .padding(horizontal = 5.dp, vertical = 1.5.dp),
@@ -230,7 +206,7 @@ private fun ChannelRow(
             }
             Text(
                 text = channel.desc,
-                style = TextStyle(fontFamily = Pretendard, fontSize = 12.sp, color = RadionColors.Muted),
+                style = RadionType.Caption,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),

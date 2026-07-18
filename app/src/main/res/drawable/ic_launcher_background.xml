@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- radion-icon.svg의 방사형 다크 글로우 배경 (풀블리드, 시스템 마스크가 모서리 처리) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path android:pathData="M0,0h512v512h-512z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="179"
+                android:centerY="154"
+                android:gradientRadius="384">
+                <item android:offset="0" android:color="#FF3A2A12" />
+                <item android:offset="1" android:color="#FF131417" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

@@ -1,4 +1,4 @@
-package com.radion.app.playback
+package com.app.radion.playback
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

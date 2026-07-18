@@ -1,4 +1,4 @@
-package com.radion.app
+package com.app.radion
 
 import android.Manifest
 import android.content.pm.ActivityInfo
@@ -18,9 +18,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.radion.app.ui.MainScreen
-import com.radion.app.ui.MainViewModel
-import com.radion.app.ui.theme.RadionTheme
+import com.app.radion.ui.MainScreen
+import com.app.radion.ui.MainViewModel
+import com.app.radion.ui.theme.RadionTheme
 
 class MainActivity : ComponentActivity() {
 

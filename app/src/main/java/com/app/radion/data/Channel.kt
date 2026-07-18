@@ -1,7 +1,8 @@
-package com.radion.app.data
+package com.app.radion.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.util.Locale
 
 @Serializable
 data class ChannelCatalog(
@@ -23,6 +24,15 @@ data class Channel(
     /** 영상 채널의 오디오 폴백 API — 보이는 라디오 미송출 시 소리만 재생 */
     val audioApi: String? = null,
 )
+
+/**
+ * 주파수를 "93.1" 형태로 포맷한다.
+ * 로케일에 따라 소수점이 쉼표로 바뀌지 않도록 [Locale.US] 고정.
+ */
+fun formatFreq(freq: Double): String = String.format(Locale.US, "%.1f", freq)
+
+/** 채널 주파수 표시 문자열 ("93.1"). */
+val Channel.freqText: String get() = formatFreq(freq)
 
 @Serializable
 enum class ChannelType {

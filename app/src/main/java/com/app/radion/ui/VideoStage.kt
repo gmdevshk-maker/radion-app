@@ -1,4 +1,4 @@
-package com.radion.app.ui
+package com.app.radion.ui
 
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -24,19 +24,15 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.radion.app.ui.theme.PlexMono
-import com.radion.app.ui.theme.Pretendard
-import com.radion.app.ui.theme.RadionColors
+import com.app.radion.data.formatFreq
+import com.app.radion.ui.theme.RadionColors
+import com.app.radion.ui.theme.RadionType
 
 /** 보이는 라디오 영상 스테이지. LIVE 배지 + 전체화면 버튼 포함. */
 @OptIn(UnstableApi::class)
@@ -98,13 +94,7 @@ fun VideoStage(
             LiveDot(active = isPlaying)
             Text(
                 text = "LIVE",
-                style = TextStyle(
-                    fontFamily = PlexMono,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.1.em,
-                    color = Color.White,
-                ),
+                style = RadionType.LiveBadge,
                 modifier = Modifier.padding(start = 6.dp),
             )
         }
@@ -168,18 +158,12 @@ private fun StudioPlaceholder(
             )
             Text(
                 text = channelName?.let { "$it 보이는 라디오" } ?: "보이는 라디오",
-                style = TextStyle(
-                    fontFamily = Pretendard,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    letterSpacing = (-0.01).em,
-                    color = RadionColors.Text,
-                ),
+                style = RadionType.StageTitle,
             )
             val subLabel = if (audioOnly) "AUDIO ONLY" else "STUDIO LIVE"
             Text(
-                text = freq?.let { String.format("%.1f MHz · %s", it, subLabel) } ?: subLabel,
-                style = TextStyle(fontFamily = PlexMono, fontSize = 11.sp, color = RadionColors.Muted),
+                text = freq?.let { "${formatFreq(it)} MHz · $subLabel" } ?: subLabel,
+                style = RadionType.MonoXs,
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

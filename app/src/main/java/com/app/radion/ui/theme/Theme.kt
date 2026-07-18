@@ -1,4 +1,4 @@
-package com.radion.app.ui.theme
+package com.app.radion.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import com.radion.app.R
+import com.app.radion.R
 
 /** 목업(radio-app-mockup.html)에서 추출한 디자인 토큰. */
 object RadionColors {
