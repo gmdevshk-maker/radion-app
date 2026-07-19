@@ -39,7 +39,7 @@
     {
       "id": "kbs-1radio",
       "group": "KBS",
-      "name": "KBS 1라디오",
+      "name": "KBS 제1라디오",
       "freq": 97.3,
       "desc": "뉴스 · 시사 · 보이는 라디오",
       "type": "video",
@@ -51,7 +51,7 @@
     {
       "id": "kbs-3radio",
       "group": "KBS",
-      "name": "KBS 3라디오",
+      "name": "KBS 제3라디오",
       "freq": 104.9,
       "desc": "사랑의소리 · 장애인 · 복지",
       "type": "audio",

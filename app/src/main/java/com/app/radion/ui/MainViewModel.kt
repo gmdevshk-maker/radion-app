@@ -19,6 +19,7 @@ import com.app.radion.data.ApkInstaller
 import com.app.radion.data.Channel
 import com.app.radion.data.ChannelRepository
 import com.app.radion.data.ChannelType
+import com.app.radion.data.NowPlayingRepository
 import com.app.radion.data.PreferencesRepository
 import com.app.radion.data.UpdateInfo
 import com.app.radion.data.UpdateRepository
@@ -31,11 +32,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.Duration
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,6 +48,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val channelRepo = ChannelRepository(application)
     private val prefsRepo = PreferencesRepository(application)
     private val updateRepo = UpdateRepository(application)
+    private val nowPlayingRepo = NowPlayingRepository()
 
     /** 현재 설치된 앱 버전명 (업데이트 다이얼로그 표시용). */
     val appVersion: String = updateRepo.currentVersionName()
@@ -79,17 +85,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _videoUnavailable = MutableStateFlow(false)
     val videoUnavailable: StateFlow<Boolean> = _videoUnavailable
 
+    /** 스테이지 아래 한 줄로 보여줄 현재 방송 정보. 정보가 없는 채널이면 null */
+    private val _nowPlaying = MutableStateFlow<String?>(null)
+    val nowPlaying: StateFlow<String?> = _nowPlaying
+
+    /**
+     * 방송 정보를 받아오는 중인지.
+     *
+     * 첫 조회가 끝나기 전에 "수신된 방송 정보가 없습니다"라고 단정하지 않으려고 구분한다
+     * (MBC는 280KB 편성표를 받는 날이면 첫 조회가 몇 초 걸린다).
+     */
+    private val _nowPlayingLoading = MutableStateFlow(false)
+    val nowPlayingLoading: StateFlow<Boolean> = _nowPlayingLoading
+
+    /** 수동 갱신 버튼을 누를 수 있는 상태인지. 누른 뒤 [MANUAL_REFRESH_INTERVAL_MS] 동안 false */
+    private val _nowPlayingRefreshEnabled = MutableStateFlow(true)
+    val nowPlayingRefreshEnabled: StateFlow<Boolean> = _nowPlayingRefreshEnabled
+
+    /** 값이 바뀌면 갱신 루프가 다시 시작된다(수동 새로고침 트리거) */
+    private val nowPlayingRefreshTrigger = MutableStateFlow(0)
+
     private val _toast = MutableSharedFlow<String>()
     val toast: SharedFlow<String> = _toast
 
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState
 
-    /** 화면이 보이는 상태인지 (보이는 라디오 영상 트랙 on/off 판단용) */
-    private var inForeground = true
+    /** 화면이 보이는 상태인지 (영상 트랙 on/off, 방송 정보 갱신 중단 판단용) */
+    private val inForeground = MutableStateFlow(true)
 
     private var retryCount = 0
     private var sleepResetJob: Job? = null
+
+    /** 방송 정보가 어느 채널 것인지 — 채널이 실제로 바뀔 때만 화면을 비우려고 들고 있다 */
+    private var nowPlayingChannelId: String? = null
 
     init {
         viewModelScope.launch {
@@ -99,6 +128,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _currentChannel.value = _channels.value.firstOrNull { it.id == lastId }
                     ?: _channels.value.firstOrNull()
             }
+        }
+
+        // 채널이 바뀌거나 앱이 다시 보이면 방송 정보를 새로 받는다.
+        // collectLatest가 이전 갱신 루프를 취소하므로 루프는 항상 하나만 돈다.
+        viewModelScope.launch {
+            combine(
+                _currentChannel,
+                inForeground,
+                nowPlayingRefreshTrigger,
+            ) { channel, foreground, _ -> channel to foreground }
+                .collectLatest { (channel, foreground) ->
+                    // 백그라운드에 다녀온 것뿐이면 받아 둔 정보를 그대로 두고 이어서 갱신한다.
+                    // 여기서 비우면 앱으로 돌아올 때마다 한 줄이 사라졌다 다시 뜬다.
+                    if (channel?.id != nowPlayingChannelId) {
+                        nowPlayingChannelId = channel?.id
+                        _nowPlaying.value = null
+                    }
+                    if (foreground) trackNowPlaying(channel)
+                }
         }
 
         // 앱 시작 시 업데이트 확인 (실패해도 조용히 무시)
@@ -200,9 +248,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Activity onStart/onStop에서 호출 — 백그라운드에서는 영상 트랙을 끊어 소리만 유지 */
     fun setForeground(foreground: Boolean) {
-        inForeground = foreground
+        inForeground.value = foreground
         if (!foreground) _isFullscreen.value = false
         applyVideoTrackPolicy()
+    }
+
+    /**
+     * 방송 정보 줄의 새로고침 버튼.
+     *
+     * 연타로 방송사 API를 두드리지 않도록 누른 뒤 [MANUAL_REFRESH_INTERVAL_MS] 동안은 무시한다.
+     * 그동안 버튼이 흐려지므로 눌리지 않는 이유가 화면에 드러난다.
+     */
+    fun refreshNowPlaying() {
+        if (!_nowPlayingRefreshEnabled.value) return
+        _nowPlayingRefreshEnabled.value = false
+        // 트리거가 바뀌면 collectLatest가 갱신 루프를 다시 시작해 곧바로 다시 받아 온다
+        nowPlayingRefreshTrigger.value++
+        viewModelScope.launch {
+            delay(MANUAL_REFRESH_INTERVAL_MS)
+            _nowPlayingRefreshEnabled.value = true
+        }
+    }
+
+    /**
+     * 방송 정보를 받아 두고, 방송사가 알려준 다음 시각까지 기다렸다가 다시 받는다.
+     *
+     * 프로그램은 종료 시각에, 곡이 붙는 채널(MBC)은 그보다 짧은 주기로 갱신된다.
+     * 시각을 못 받았거나 호출이 실패하면 [NOW_PLAYING_RETRY_MS] 뒤에 다시 시도한다.
+     */
+    private suspend fun trackNowPlaying(channel: Channel?) {
+        if (channel?.infoProvider == null) {
+            _nowPlayingLoading.value = false
+            return
+        }
+        try {
+            while (true) {
+                _nowPlayingLoading.value = true
+                val info = nowPlayingRepo.fetch(channel)
+                _nowPlayingLoading.value = false
+                _nowPlaying.value = info?.text
+                val waitMs = info?.refreshAt
+                    ?.let { Duration.between(LocalDateTime.now(), it).toMillis() }
+                    ?: NOW_PLAYING_RETRY_MS
+                // 시계가 어긋나거나 편성 시각이 이상해도 과하게 자거나 깨지 않도록 가둔다
+                delay(waitMs.coerceIn(NOW_PLAYING_MIN_WAIT_MS, NOW_PLAYING_MAX_WAIT_MS))
+            }
+        } finally {
+            // 채널 변경·백그라운드 진입으로 취소되면 조회 중 상태가 그대로 남는다
+            _nowPlayingLoading.value = false
+        }
     }
 
     private fun startPlayback(channel: Channel, audioFallback: Boolean = false) {
@@ -262,7 +356,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val channel = _currentChannel.value
         // 영상 채널이 포그라운드일 때만 비디오 트랙 활성화.
         // (EBS처럼 오디오 채널인데 영상 트랙이 섞인 스트림도 있어 오디오 채널은 항상 비활성화)
-        val enableVideo = channel?.type == ChannelType.VIDEO && inForeground
+        val enableVideo = channel?.type == ChannelType.VIDEO && inForeground.value
         controller.trackSelectionParameters = controller.trackSelectionParameters
             .buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !enableVideo)
@@ -352,6 +446,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private const val MAX_RETRY = 3
         private const val RETRY_DELAY_MS = 2_000L
         private const val CONTROLLER_WAIT_MS = 10_000L
+        private const val NOW_PLAYING_RETRY_MS = 120_000L
+        private const val NOW_PLAYING_MIN_WAIT_MS = 30_000L
+        private const val NOW_PLAYING_MAX_WAIT_MS = 900_000L
+        private const val MANUAL_REFRESH_INTERVAL_MS = 10_000L
     }
 }
 

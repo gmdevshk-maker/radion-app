@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +51,9 @@ fun MainScreen(viewModel: MainViewModel) {
     val sleepEndsAt by viewModel.sleepEndsAt.collectAsState()
     val isFullscreen by viewModel.isFullscreen.collectAsState()
     val videoUnavailable by viewModel.videoUnavailable.collectAsState()
+    val nowPlaying by viewModel.nowPlaying.collectAsState()
+    val nowPlayingLoading by viewModel.nowPlayingLoading.collectAsState()
+    val nowPlayingRefreshEnabled by viewModel.nowPlayingRefreshEnabled.collectAsState()
     val controller by viewModel.controller.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
 
@@ -122,6 +126,25 @@ fun MainScreen(viewModel: MainViewModel) {
             }
 
             if (!isFullscreen) {
+                // 방송 정보는 튜너·영상 어느 쪽이든 스테이지 바로 아래에 같은 모양으로 붙는다
+                NowPlayingLine(
+                    text = nowPlaying,
+                    channelId = currentChannel?.id,
+                    hasProvider = currentChannel?.infoProvider != null,
+                    loading = nowPlayingLoading,
+                    refreshEnabled = nowPlayingRefreshEnabled,
+                    onRefresh = viewModel::refreshNowPlaying,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+
+                // 스테이지와 리스트의 경계. 리스트를 스크롤하면 채널 행이 정보 줄 바로 밑까지
+                // 올라와 위아래가 한 덩어리로 읽히므로 선을 그어 영역을 갈라 준다
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = RadionColors.Line,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
                 ChannelList(
                     channels = channels,
                     currentChannelId = currentChannel?.id,
@@ -197,7 +220,7 @@ private fun Header(
                     .padding(end = 7.dp, bottom = 1.dp)
                     .size(22.dp),
             )
-            Text(text = "라디온", style = RadionType.AppTitle)
+            Text(text = "RadiOn", style = RadionType.AppTitle)
             Text(
                 text = "(v$version)",
                 style = RadionType.Overline,

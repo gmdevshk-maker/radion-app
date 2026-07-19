@@ -13,6 +13,9 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.app.radion.ui.theme.RadionColors
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /** 목업 SVG 아이콘들을 Canvas로 재현 (24x24 뷰포트 기준). */
 
@@ -193,5 +196,43 @@ fun FullscreenIcon(exit: Boolean, color: Color, modifier: Modifier = Modifier) {
             }
         }
         strokePath(path, color)
+    }
+}
+
+/** 새로고침(원형 화살표). 오른쪽 위가 트인 호 + 그 끝에 진행 방향으로 놓인 화살촉. */
+@Composable
+fun RefreshIcon(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val s = size.minDimension / 24f
+        val center = Offset(12f * s, 12f * s)
+        val radius = 8f * s
+
+        // 오른쪽 위 70도를 비워 둔다 — 그 자리에 화살촉이 들어간다
+        val startDeg = 10f
+        val sweepDeg = 290f
+        drawArc(
+            color = color,
+            startAngle = startDeg,
+            sweepAngle = sweepDeg,
+            useCenter = false,
+            topLeft = Offset(center.x - radius, center.y - radius),
+            size = Size(radius * 2, radius * 2),
+            style = Stroke(width = size.minDimension * 2f / 24f, cap = StrokeCap.Round),
+        )
+
+        // 호가 끝나는 점의 접선(시계 방향)을 구해 그 방향으로 삼각형을 세운다.
+        // 좌표를 손으로 박아 넣으면 반지름이나 각도를 조금만 바꿔도 화살촉이 호에서 떨어진다.
+        val endRad = ((startDeg + sweepDeg) * PI / 180f).toFloat()
+        val tip = Offset(center.x + radius * cos(endRad), center.y + radius * sin(endRad))
+        val dir = Offset(-sin(endRad), cos(endRad))
+        val perp = Offset(-dir.y, dir.x)
+        val head = 3.4f * s
+        val path = Path().apply {
+            moveTo(tip.x + dir.x * head, tip.y + dir.y * head)
+            lineTo(tip.x + perp.x * head * 0.8f, tip.y + perp.y * head * 0.8f)
+            lineTo(tip.x - perp.x * head * 0.8f, tip.y - perp.y * head * 0.8f)
+            close()
+        }
+        drawPath(path, color)
     }
 }
