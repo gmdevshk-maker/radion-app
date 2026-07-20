@@ -26,13 +26,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.app.radion.data.ChannelType
 import com.app.radion.ui.theme.RadionColors
 import com.app.radion.ui.theme.RadionType
@@ -57,7 +63,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val controller by viewModel.controller.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
 
-    var toastMessage by remember { mutableStateOf<String?>(null) }
+    var toastMessage by remember { mutableStateOf<ToastMessage?>(null) }
     LaunchedEffect(Unit) {
         viewModel.toast.collect { message ->
             toastMessage = message
@@ -89,6 +95,7 @@ fun MainScreen(viewModel: MainViewModel) {
             if (!isFullscreen) {
                 Header(
                     version = viewModel.appVersion,
+                    sleepToast = toastMessage?.takeIf { it.anchor == ToastAnchor.SLEEP_CHIP }?.text,
                     sleepMinutes = sleepMinutes,
                     sleepEndsAt = sleepEndsAt,
                     onSleepClick = viewModel::cycleSleepTimer,
@@ -175,20 +182,15 @@ fun MainScreen(viewModel: MainViewModel) {
             )
         }
 
-        // 토스트
-        toastMessage?.let { message ->
-            Box(
+        // 토스트. 취침 타이머 안내는 Header가 칩 아래에 직접 띄운다
+        toastMessage?.takeIf { it.anchor == ToastAnchor.BOTTOM }?.let { message ->
+            ToastBubble(
+                message = message.text,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 88.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(RadionColors.Surface2)
-                    .border(1.dp, RadionColors.Line, RoundedCornerShape(999.dp))
-                    .padding(horizontal = 16.dp, vertical = 9.dp),
-            ) {
-                Text(text = message, style = RadionType.Body)
-            }
+                    .padding(bottom = 88.dp),
+            )
         }
 
         UpdateDialog(
@@ -200,9 +202,24 @@ fun MainScreen(viewModel: MainViewModel) {
     }
 }
 
+/** 화면 아무 데나 띄우는 알약 모양 알림. 위치는 호출부가 modifier로 정한다. */
+@Composable
+private fun ToastBubble(message: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(RadionColors.Surface2)
+            .border(1.dp, RadionColors.Line, RoundedCornerShape(999.dp))
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+    ) {
+        Text(text = message, style = RadionType.Body)
+    }
+}
+
 @Composable
 private fun Header(
     version: String,
+    sleepToast: String?,
     sleepMinutes: Int?,
     sleepEndsAt: LocalTime?,
     onSleepClick: () -> Unit,
@@ -221,11 +238,39 @@ private fun Header(
                     .size(22.dp),
             )
             Text(text = "RadiOn", style = RadionType.AppTitle)
-            Text(
-                text = "(v$version)",
-                style = RadionType.Overline,
-                modifier = Modifier.padding(start = 3.dp, bottom = 2.dp),
-            )
+
+            // 버전은 평소엔 감춰 두고 ⓘ를 누를 때만 바로 아래 말풍선으로 알린다.
+            // 헤더 Row 안에서 그리면 레이아웃을 밀어내므로 Popup으로 띄운다
+            var showVersion by remember { mutableStateOf(false) }
+            var iconHeight by remember { mutableIntStateOf(0) }
+            LaunchedEffect(showVersion) {
+                if (showVersion) {
+                    delay(1800)
+                    showVersion = false
+                }
+            }
+            Box {
+                Text(
+                    text = "ⓘ",
+                    style = RadionType.Overline.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier
+                        .padding(start = 1.dp, bottom = 1.dp)
+                        .onSizeChanged { iconHeight = it.height }
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { showVersion = !showVersion }
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+                if (showVersion) {
+                    val gap = with(LocalDensity.current) { 6.dp.roundToPx() }
+                    Popup(
+                        alignment = Alignment.TopCenter,
+                        offset = IntOffset(0, iconHeight + gap),
+                        onDismissRequest = { showVersion = false },
+                    ) {
+                        ToastBubble(message = "버전 v$version")
+                    }
+                }
+            }
         }
 
         Row(
@@ -235,30 +280,45 @@ private fun Header(
             HeaderClock()
 
             val active = sleepMinutes != null
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(RadionColors.Surface)
-                    .border(
-                        1.dp,
-                        if (active) RadionColors.AmberDim else RadionColors.Line,
-                        RoundedCornerShape(999.dp),
-                    )
-                    .clickable(onClick = onSleepClick)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                ClockIcon(
-                    color = if (active) RadionColors.Amber else RadionColors.Muted,
-                    modifier = Modifier.size(13.dp),
-                )
-                Text(
-                    text = sleepEndsAt?.let { "${formatEndTime(it)}에 종료" } ?: "취침 타이머",
-                    style = RadionType.Caption.copy(
+            var chipHeight by remember { mutableIntStateOf(0) }
+            Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .onSizeChanged { chipHeight = it.height }
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(RadionColors.Surface)
+                        .border(
+                            1.dp,
+                            if (active) RadionColors.AmberDim else RadionColors.Line,
+                            RoundedCornerShape(999.dp),
+                        )
+                        .clickable(onClick = onSleepClick)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    ClockIcon(
                         color = if (active) RadionColors.Amber else RadionColors.Muted,
-                    ),
-                )
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = sleepEndsAt?.let { "${formatEndTime(it)}에 종료" } ?: "취침 타이머",
+                        style = RadionType.Caption.copy(
+                            color = if (active) RadionColors.Amber else RadionColors.Muted,
+                        ),
+                    )
+                }
+
+                // 말풍선이 칩보다 넓어 가운데 정렬하면 화면 밖으로 나간다 → 오른쪽 끝을 맞춘다
+                if (sleepToast != null) {
+                    val gap = with(LocalDensity.current) { 6.dp.roundToPx() }
+                    Popup(
+                        alignment = Alignment.TopEnd,
+                        offset = IntOffset(0, chipHeight + gap),
+                    ) {
+                        ToastBubble(message = sleepToast)
+                    }
+                }
             }
         }
     }

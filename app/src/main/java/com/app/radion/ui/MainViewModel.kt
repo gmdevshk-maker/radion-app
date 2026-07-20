@@ -105,8 +105,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** 값이 바뀌면 갱신 루프가 다시 시작된다(수동 새로고침 트리거) */
     private val nowPlayingRefreshTrigger = MutableStateFlow(0)
 
-    private val _toast = MutableSharedFlow<String>()
-    val toast: SharedFlow<String> = _toast
+    private val _toast = MutableSharedFlow<ToastMessage>()
+    val toast: SharedFlow<ToastMessage> = _toast
 
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState
@@ -236,9 +236,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _sleepMinutes.value = null
                 _sleepEndsAt.value = null
             }
-            showToast("${next}분 후 재생이 종료됩니다")
+            showToast("${next}분 후 재생이 종료됩니다", ToastAnchor.SLEEP_CHIP)
         } else {
-            showToast("취침 타이머 해제")
+            showToast("취침 타이머 해제", ToastAnchor.SLEEP_CHIP)
         }
     }
 
@@ -433,8 +433,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun showToast(message: String) {
-        viewModelScope.launch { _toast.emit(message) }
+    private fun showToast(message: String, anchor: ToastAnchor = ToastAnchor.BOTTOM) {
+        viewModelScope.launch { _toast.emit(ToastMessage(message, anchor)) }
     }
 
     override fun onCleared() {
@@ -452,6 +452,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private const val MANUAL_REFRESH_INTERVAL_MS = 10_000L
     }
 }
+
+/** 토스트가 뜰 자리. 취침 타이머 안내는 눌린 칩 바로 아래, 나머지는 화면 하단. */
+enum class ToastAnchor { BOTTOM, SLEEP_CHIP }
+
+data class ToastMessage(val text: String, val anchor: ToastAnchor = ToastAnchor.BOTTOM)
 
 /** 인앱 업데이트 상태. */
 sealed interface UpdateState {
