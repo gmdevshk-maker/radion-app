@@ -27,6 +27,11 @@ data class Channel(
     val infoProvider: InfoProvider? = null,
     /** [infoProvider]가 채널을 구분하는 코드. 스트림 API의 코드와 다를 수 있어 따로 둔다 */
     val infoCode: String? = null,
+    /**
+     * 하루치 편성표 API의 채널 코드. SBS만 현재 방송 API(S07/S08)와 편성표 API(Power/Love)의
+     * 코드가 달라 따로 둔다. KBS·MBC는 [infoCode]를 그대로 쓰므로 없다.
+     */
+    val scheduleCode: String? = null,
 )
 
 /**

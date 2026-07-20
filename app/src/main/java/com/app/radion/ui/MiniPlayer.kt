@@ -130,9 +130,9 @@ fun MiniPlayer(
 
 /** 재생 상태 점. 재생 중이면 앰버, 아니면 회색. 점멸 애니메이션 없음(상시 리드로우 방지). */
 @Composable
-fun LiveDot(active: Boolean, modifier: Modifier = Modifier) {
+private fun LiveDot(active: Boolean) {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .size(6.dp)
             .drawBehind {
                 drawCircle(if (active) RadionColors.Needle else RadionColors.Muted)

@@ -21,9 +21,12 @@ import com.app.radion.data.ChannelRepository
 import com.app.radion.data.ChannelType
 import com.app.radion.data.NowPlayingRepository
 import com.app.radion.data.PreferencesRepository
+import com.app.radion.data.ScheduleItem
+import com.app.radion.data.ScheduleRepository
 import com.app.radion.data.UpdateInfo
 import com.app.radion.data.UpdateRepository
 import com.app.radion.data.freqText
+import com.app.radion.data.hasSchedule
 import com.app.radion.playback.RadioPlaybackService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -49,6 +52,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val prefsRepo = PreferencesRepository(application)
     private val updateRepo = UpdateRepository(application)
     private val nowPlayingRepo = NowPlayingRepository()
+    private val scheduleRepo = ScheduleRepository()
 
     /** 현재 설치된 앱 버전명 (업데이트 다이얼로그 표시용). */
     val appVersion: String = updateRepo.currentVersionName()
@@ -101,6 +105,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** 수동 갱신 버튼을 누를 수 있는 상태인지. 누른 뒤 [MANUAL_REFRESH_INTERVAL_MS] 동안 false */
     private val _nowPlayingRefreshEnabled = MutableStateFlow(true)
     val nowPlayingRefreshEnabled: StateFlow<Boolean> = _nowPlayingRefreshEnabled
+
+    /** 편성표 시트에 뿌릴 오늘 편성. 시트가 닫혀 있으면 null */
+    private val _schedule = MutableStateFlow<ScheduleSheetState?>(null)
+    val schedule: StateFlow<ScheduleSheetState?> = _schedule
 
     /** 값이 바뀌면 갱신 루프가 다시 시작된다(수동 새로고침 트리거) */
     private val nowPlayingRefreshTrigger = MutableStateFlow(0)
@@ -181,18 +189,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }, MoreExecutors.directExecutor())
     }
 
-    fun selectChannel(channel: Channel, play: Boolean = true) {
-        val previous = _currentChannel.value
+    fun selectChannel(channel: Channel) {
         _currentChannel.value = channel
         _videoUnavailable.value = false
         if (channel.type == ChannelType.AUDIO) _isFullscreen.value = false
         viewModelScope.launch { prefsRepo.setLastChannel(channel.id) }
-        if (play) {
-            retryCount = 0
-            startPlayback(channel)
-        } else if (previous?.id != channel.id) {
-            _isPlaying.value = false
-        }
+        retryCount = 0
+        startPlayback(channel)
     }
 
     fun togglePlay() {
@@ -319,7 +322,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     channelRepo.resolveStreamUrl(channel)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // 보이는 라디오 미편성이면 URL 발급 단계에서 실패한다(MBC) → 오디오로 전환
                 if (!audioFallback && canFallBackToAudio(channel)) {
                     _videoUnavailable.value = true
@@ -419,11 +422,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 ApkInstaller.install(context, apk)
                 _updateState.value = UpdateState.Idle
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 showToast("업데이트 다운로드에 실패했습니다")
                 _updateState.value = UpdateState.Available(info)
             }
         }
+    }
+
+    /**
+     * 방송 정보 줄을 눌렀을 때: 오늘 편성표 시트를 연다.
+     *
+     * 표를 받는 동안에도 시트는 먼저 띄운다 — MBC는 280KB짜리 주간 편성표를 받는 날이 있어
+     * 다 받고 열면 누르고 한참 아무 반응이 없다.
+     */
+    fun openSchedule() {
+        val channel = _currentChannel.value ?: return
+        if (!channel.hasSchedule) return
+
+        _schedule.value = ScheduleSheetState(channel, items = emptyList(), loading = true)
+        viewModelScope.launch {
+            val items = scheduleRepo.fetchToday(channel)
+            // 받는 사이에 시트를 닫았거나 채널을 바꿨으면 늦게 온 표는 버린다
+            if (_schedule.value?.channel?.id != channel.id) return@launch
+            _schedule.value = ScheduleSheetState(channel, items, loading = false)
+        }
+    }
+
+    fun closeSchedule() {
+        _schedule.value = null
     }
 
     /** '나중에' 버튼: 이번 실행 동안 다이얼로그를 닫는다. */
@@ -452,6 +478,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private const val MANUAL_REFRESH_INTERVAL_MS = 10_000L
     }
 }
+
+/**
+ * 편성표 시트 상태. 시트가 열려 있는 동안만 존재한다.
+ *
+ * 어느 채널 표인지 들고 있어야 늦게 도착한 응답을 버릴 수 있고,
+ * 시트를 먼저 띄우고 표를 채우므로 [loading]과 빈 목록을 구분해야 한다.
+ */
+data class ScheduleSheetState(
+    val channel: Channel,
+    val items: List<ScheduleItem>,
+    val loading: Boolean,
+)
 
 /** 토스트가 뜰 자리. 취침 타이머 안내는 눌린 칩 바로 아래, 나머지는 화면 하단. */
 enum class ToastAnchor { BOTTOM, SLEEP_CHIP }

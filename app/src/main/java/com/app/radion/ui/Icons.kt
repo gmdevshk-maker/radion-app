@@ -88,6 +88,25 @@ fun ClockIcon(color: Color, modifier: Modifier = Modifier) {
     }
 }
 
+/** 편성표 버튼 — 시각 눈금(점)과 프로그램 줄이 짝지어 내려가는 모양. */
+@Composable
+fun ScheduleIcon(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val s = size.minDimension / 24f
+        val stroke = Stroke(width = size.minDimension * 2f / 24f, cap = StrokeCap.Round)
+        listOf(6f, 12f, 18f).forEach { y ->
+            drawCircle(color, radius = 1.6f * s, center = Offset(4.5f * s, y * s))
+            drawLine(
+                color,
+                start = Offset(10f * s, y * s),
+                end = Offset(20f * s, y * s),
+                strokeWidth = stroke.width,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
 @Composable
 fun CameraIcon(color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
@@ -101,7 +120,7 @@ fun CameraIcon(color: Color, modifier: Modifier = Modifier) {
             color,
             topLeft = Offset(2f * s, 6f * s),
             size = Size(13f * s, 12f * s),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.5f * s),
+            cornerRadius = CornerRadius(2.5f * s),
             style = stroke,
         )
         val lens = Path().apply {

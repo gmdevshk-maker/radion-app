@@ -38,7 +38,7 @@ class UpdateRepository(private val context: Context) {
             val body = httpGetText("$VERSION_API?package=${context.packageName}", userAgent = UPDATER_USER_AGENT)
             val info = json.decodeFromString<UpdateInfo>(body)
             if (isNewer(info.version, currentVersionName())) info else null
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -85,7 +85,7 @@ class UpdateRepository(private val context: Context) {
         private const val UPDATER_USER_AGENT = "RadiOn-Updater"
 
         /** "1.0.10" > "1.0.9" 처럼 점 단위 세그먼트를 숫자로 비교. */
-        fun isNewer(remote: String, current: String): Boolean {
+        private fun isNewer(remote: String, current: String): Boolean {
             val r = remote.split(".").map { it.trim().toIntOrNull() ?: 0 }
             val c = current.split(".").map { it.trim().toIntOrNull() ?: 0 }
             for (i in 0 until maxOf(r.size, c.size)) {

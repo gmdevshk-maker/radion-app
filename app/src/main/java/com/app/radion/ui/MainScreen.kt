@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.app.radion.data.ChannelType
+import com.app.radion.data.hasSchedule
 import com.app.radion.ui.theme.RadionColors
 import com.app.radion.ui.theme.RadionType
 import kotlinx.coroutines.delay
@@ -62,6 +63,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val nowPlayingRefreshEnabled by viewModel.nowPlayingRefreshEnabled.collectAsState()
     val controller by viewModel.controller.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
+    val schedule by viewModel.schedule.collectAsState()
 
     var toastMessage by remember { mutableStateOf<ToastMessage?>(null) }
     LaunchedEffect(Unit) {
@@ -138,9 +140,11 @@ fun MainScreen(viewModel: MainViewModel) {
                     text = nowPlaying,
                     channelId = currentChannel?.id,
                     hasProvider = currentChannel?.infoProvider != null,
+                    hasSchedule = currentChannel?.hasSchedule == true,
                     loading = nowPlayingLoading,
                     refreshEnabled = nowPlayingRefreshEnabled,
                     onRefresh = viewModel::refreshNowPlaying,
+                    onOpenSchedule = viewModel::openSchedule,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
 
@@ -192,6 +196,11 @@ fun MainScreen(viewModel: MainViewModel) {
                     .padding(bottom = 88.dp),
             )
         }
+
+        ScheduleSheet(
+            state = schedule,
+            onDismiss = viewModel::closeSchedule,
+        )
 
         UpdateDialog(
             state = updateState,
@@ -333,7 +342,7 @@ private fun formatEndTime(t: LocalTime): String {
 
 /** 현재 시각 디지털 시계. 초는 표시하지 않으므로 분이 바뀔 때만 갱신한다. */
 @Composable
-private fun HeaderClock(modifier: Modifier = Modifier) {
+private fun HeaderClock() {
     var now by remember { mutableStateOf(LocalTime.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -344,9 +353,8 @@ private fun HeaderClock(modifier: Modifier = Modifier) {
     }
 
     val hour12 = if (now.hour % 12 == 0) 12 else now.hour % 12
-    val numberStyle = RadionType.ClockTime
 
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = if (now.hour < 12) "AM" else "PM",
             style = RadionType.Overline,
@@ -354,7 +362,7 @@ private fun HeaderClock(modifier: Modifier = Modifier) {
         )
         Text(
             text = String.format(Locale.US, "%02d:%02d", hour12, now.minute),
-            style = numberStyle,
+            style = RadionType.ClockTime,
         )
     }
 }

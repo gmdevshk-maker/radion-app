@@ -1,6 +1,5 @@
 package com.app.radion.ui.theme
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
@@ -169,15 +168,6 @@ object RadionType {
         fontSize = 10.5.sp,
         letterSpacing = 0.06.em,
         color = RadionColors.Muted,
-    )
-
-    /** 영상 스테이지의 LIVE 배지 */
-    val LiveBadge = TextStyle(
-        fontFamily = PlexMono,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 10.5.sp,
-        letterSpacing = 0.1.em,
-        color = Color.White,
     )
 
     /** 다이얼로그 상단의 "RADION UPDATE" */
